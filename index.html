@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bütçe & Finans Planlayıcı - Antigravity</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Canvas Confetti for Goals -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col md:flex-row antialiased">
+
+  <!-- Mobil Üst Bar -->
+  <header class="md:hidden flex items-center justify-between bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-30">
+    <div class="flex items-center gap-2">
+      <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+        <i data-lucide="wallet-cards" class="w-5 h-5"></i>
+      </div>
+      <span class="font-bold text-lg text-slate-900 tracking-tight">BütçePlan</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="App.openAddTransactionModal()" class="bg-indigo-600 text-white p-2 rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-sm">
+        <i data-lucide="plus" class="w-5 h-5"></i>
+      </button>
+      <button id="mobile-menu-btn" class="p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+        <i data-lucide="menu" class="w-6 h-6"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Yan Menü / Sidebar -->
+  <aside id="sidebar" class="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 shrink-0 h-screen sticky top-0 z-20">
+    <!-- Logo & Başlık -->
+    <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center text-white shadow-md shadow-indigo-100">
+        <i data-lucide="wallet-cards" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h1 class="font-extrabold text-slate-900 text-lg tracking-tight leading-tight">BütçePlan</h1>
+        <p class="text-xs text-slate-400 font-medium">Kişisel Finans Yönetimi</p>
+      </div>
+    </div>
+
+    <!-- Menü Sekmeleri -->
+    <nav class="flex-1 px-4 py-5 space-y-1 overflow-y-auto">
+      <button onclick="App.switchTab('dashboard')" data-tab="dashboard" class="nav-tab active w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition">
+        <i data-lucide="layout-dashboard" class="w-4 h-4 text-slate-500"></i>
+        <span>Genel Bakış</span>
+      </button>
+
+      <button onclick="App.switchTab('transactions')" data-tab="transactions" class="nav-tab w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition">
+        <i data-lucide="arrow-left-right" class="w-4 h-4 text-slate-500"></i>
+        <span>Gelir & Giderler</span>
+      </button>
+
+      <button onclick="App.switchTab('budgets')" data-tab="budgets" class="nav-tab w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition">
+        <i data-lucide="pie-chart" class="w-4 h-4 text-slate-500"></i>
+        <span>Bütçe Limitleri</span>
+      </button>
+
+      <button onclick="App.switchTab('savings')" data-tab="savings" class="nav-tab w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition">
+        <i data-lucide="target" class="w-4 h-4 text-slate-500"></i>
+        <span>Birikim Hedefleri</span>
+      </button>
+
+      <button onclick="App.switchTab('reports')" data-tab="reports" class="nav-tab w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition">
+        <i data-lucide="trending-up" class="w-4 h-4 text-slate-500"></i>
+        <span>Raporlar & Analiz</span>
+      </button>
+
+      <div class="pt-4 mt-4 border-t border-slate-100">
+        <button onclick="App.switchTab('settings')" data-tab="settings" class="nav-tab w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition">
+          <i data-lucide="sliders-horizontal" class="w-4 h-4 text-slate-500"></i>
+          <span>Yedek & Ayarlar</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Hızlı İşlem Ekle Butonu -->
+    <div class="p-4 border-t border-slate-100 bg-slate-50/50">
+      <button onclick="App.openAddTransactionModal()" class="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-xl shadow-md shadow-indigo-100 transition active:scale-[0.98]">
+        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+        <span>İşlem Ekle</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Mobil Menü Açılır Penceresi -->
+  <div id="mobile-drawer" class="hidden md:hidden fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm">
+    <div class="bg-white w-4/5 max-w-xs h-full p-6 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between pb-5 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
+              <i data-lucide="wallet-cards" class="w-5 h-5"></i>
+            </div>
+            <span class="font-bold text-slate-900">BütçePlan</span>
+          </div>
+          <button id="close-mobile-menu" class="p-1 text-slate-400 hover:text-slate-600">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+        </div>
+        <nav class="mt-6 space-y-2">
+          <button onclick="App.switchTab('dashboard'); App.closeMobileMenu();" class="mobile-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-700 font-medium hover:bg-indigo-50 hover:text-indigo-600">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Genel Bakış
+          </button>
+          <button onclick="App.switchTab('transactions'); App.closeMobileMenu();" class="mobile-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-700 font-medium hover:bg-indigo-50 hover:text-indigo-600">
+            <i data-lucide="arrow-left-right" class="w-4 h-4"></i> Gelir & Giderler
+          </button>
+          <button onclick="App.switchTab('budgets'); App.closeMobileMenu();" class="mobile-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-700 font-medium hover:bg-indigo-50 hover:text-indigo-600">
+            <i data-lucide="pie-chart" class="w-4 h-4"></i> Bütçe Limitleri
+          </button>
+          <button onclick="App.switchTab('savings'); App.closeMobileMenu();" class="mobile-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-700 font-medium hover:bg-indigo-50 hover:text-indigo-600">
+            <i data-lucide="target" class="w-4 h-4"></i> Birikim Hedefleri
+          </button>
+          <button onclick="App.switchTab('reports'); App.closeMobileMenu();" class="mobile-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-700 font-medium hover:bg-indigo-50 hover:text-indigo-600">
+            <i data-lucide="trending-up" class="w-4 h-4"></i> Raporlar & Analiz
+          </button>
+          <button onclick="App.switchTab('settings'); App.closeMobileMenu();" class="mobile-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-700 font-medium hover:bg-indigo-50 hover:text-indigo-600">
+            <i data-lucide="sliders-horizontal" class="w-4 h-4"></i> Yedek & Ayarlar
+          </button>
+        </nav>
+      </div>
+      <div>
+        <button onclick="App.openAddTransactionModal(); App.closeMobileMenu();" class="w-full bg-indigo-600 text-white font-medium py-2.5 rounded-xl shadow-md">
+          + Yeni İşlem Ekle
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ana İçerik Alanı -->
+  <main class="flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-8 max-w-7xl mx-auto w-full">
+    
+    <!-- Üst Başlık Barı -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div>
+        <div class="flex items-center gap-2">
+          <h2 id="page-title" class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Finansal Genel Bakış</h2>
+          <span id="current-month-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+            Ekim 2026
+          </span>
+        </div>
+        <p id="page-subtitle" class="text-sm text-slate-500 mt-1">Gelir, gider ve tasarruf hedeflerinizi anlık olarak izleyin.</p>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <button onclick="DataManager.exportCSV()" class="inline-flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-xl border border-slate-200 shadow-sm transition">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i>
+          <span>Excel CSV</span>
+        </button>
+        <button onclick="App.openAddTransactionModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm shadow-indigo-100 transition">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>İşlem Ekle</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- SEKMELER (VIEWS) -->
+
+    <!-- 1. GENEL BAKIŞ (DASHBOARD) -->
+    <div id="view-dashboard" class="tab-view space-y-8 animate-fade-in">
+      
+      <!-- Özet Kartları Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Toplam Bakiye -->
+        <div class="soft-card soft-card-hover p-5 rounded-2xl">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Net Bakiye</span>
+            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <i data-lucide="wallet" class="w-5 h-5"></i>
+            </div>
+          </div>
+          <div class="mt-3">
+            <h3 id="stat-net-balance" class="text-2xl font-extrabold text-slate-900">0,00 ₺</h3>
+            <div class="flex items-center gap-1.5 mt-1 text-xs">
+              <span id="stat-net-status" class="font-medium text-emerald-600 flex items-center gap-0.5">
+                <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> Pozitif Nakit Akışı
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bu Ayki Gelir -->
+        <div class="soft-card soft-card-hover p-5 rounded-2xl">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Bu Ayki Gelir</span>
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <i data-lucide="arrow-down-left" class="w-5 h-5"></i>
+            </div>
+          </div>
+          <div class="mt-3">
+            <h3 id="stat-month-income" class="text-2xl font-extrabold text-emerald-600">0,00 ₺</h3>
+            <p id="stat-income-count" class="text-xs text-slate-400 mt-1">0 işlem kaydedildi</p>
+          </div>
+        </div>
+
+        <!-- Bu Ayki Gider -->
+        <div class="soft-card soft-card-hover p-5 rounded-2xl">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Bu Ayki Gider</span>
+            <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+              <i data-lucide="arrow-up-right" class="w-5 h-5"></i>
+            </div>
+          </div>
+          <div class="mt-3">
+            <h3 id="stat-month-expense" class="text-2xl font-extrabold text-rose-600">0,00 ₺</h3>
+            <p id="stat-expense-ratio" class="text-xs text-slate-400 mt-1">Gelirin %0 harcandı</p>
+          </div>
+        </div>
+
+        <!-- Tasarruf Oranı -->
+        <div class="soft-card soft-card-hover p-5 rounded-2xl">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Tasarruf Oranı</span>
+            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <i data-lucide="piggy-bank" class="w-5 h-5"></i>
+            </div>
+          </div>
+          <div class="mt-3">
+            <h3 id="stat-savings-rate" class="text-2xl font-extrabold text-amber-600">%0</h3>
+            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div id="stat-savings-progress" class="bg-amber-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Limit Aşım / Uyarı Bannerı (Dinamik Gösterim) -->
+      <div id="budget-alert-banner" class="hidden p-4 rounded-2xl bg-rose-50 border border-rose-200 flex items-start gap-3.5">
+        <div class="p-2 bg-rose-100 text-rose-700 rounded-xl shrink-0 mt-0.5">
+          <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+        </div>
+        <div class="flex-1">
+          <h4 class="font-bold text-rose-900 text-sm">Dikkat: Bütçe Limiti Aşıldı veya Eşiğe Yaklaştı!</h4>
+          <p id="budget-alert-desc" class="text-xs text-rose-700 mt-0.5">Kategori harcamalarınızdan bazıları aylık bütçe sınırına ulaştı.</p>
+        </div>
+        <button onclick="App.switchTab('budgets')" class="text-xs font-semibold text-rose-800 hover:text-rose-950 underline shrink-0">
+          İncele
+        </button>
+      </div>
+
+      <!-- Grafikler Sırası -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Harcama Dağılımı (Doughnut) -->
+        <div class="lg:col-span-5 soft-card p-6 rounded-2xl flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-bold text-slate-900 text-base">Harcama Dağılımı</h3>
+              <p class="text-xs text-slate-400">Bu ayki kategorik harcamalar</p>
+            </div>
+            <span class="text-xs font-medium px-2 py-1 bg-slate-100 text-slate-600 rounded-lg">Kategori Bazlı</span>
+          </div>
+          <div class="relative h-64 flex items-center justify-center">
+            <canvas id="expenseDonutCanvas"></canvas>
+          </div>
+        </div>
+
+        <!-- Aylık Trend (Bar) -->
+        <div class="lg:col-span-7 soft-card p-6 rounded-2xl flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-bold text-slate-900 text-base">Aylık Gelir vs Gider Trendi</h3>
+              <p class="text-xs text-slate-400">Son aylara ait nakit akışı karşılaştırması</p>
+            </div>
+            <span class="text-xs font-medium px-2 py-1 bg-slate-100 text-slate-600 rounded-lg">Son 6 Ay</span>
+          </div>
+          <div class="relative h-64">
+            <canvas id="monthlyTrendCanvas"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alt Sıra: Bütçe Durumu & Son İşlemler -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Bütçe Durumu Özeti -->
+        <div class="lg:col-span-6 soft-card p-6 rounded-2xl">
+          <div class="flex items-center justify-between mb-5">
+            <div>
+              <h3 class="font-bold text-slate-900 text-base">Kategori Bütçe Durumu</h3>
+              <p class="text-xs text-slate-400">Aylık belirlenen limitlerin kullanım oranı</p>
+            </div>
+            <button onclick="App.switchTab('budgets')" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+              Tümünü Gör <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+          <div id="dashboard-budget-list" class="space-y-4">
+            <!-- Dinamik doldurulur -->
+          </div>
+        </div>
+
+        <!-- Son İşlemler -->
+        <div class="lg:col-span-6 soft-card p-6 rounded-2xl flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="font-bold text-slate-900 text-base">Son İşlemler</h3>
+                <p class="text-xs text-slate-400">Kaydedilen en son gelir ve giderler</p>
+              </div>
+              <button onclick="App.switchTab('transactions')" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                Tümünü Gör <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+            <div id="dashboard-recent-transactions" class="divide-y divide-slate-100">
+              <!-- Dinamik doldurulur -->
+            </div>
+          </div>
+          <div class="pt-4 border-t border-slate-100 mt-2">
+            <button onclick="App.openAddTransactionModal()" class="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition text-center">
+              + Yeni İşlem Kaydet
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 2. GELİR & GİDERLER TABLOSU (TRANSACTIONS) -->
+    <div id="view-transactions" class="tab-view hidden space-y-6 animate-fade-in">
+      <!-- Filtreleme ve Arama Barı -->
+      <div class="soft-card p-4 rounded-2xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+        <!-- Arama Inputu -->
+        <div class="relative flex-1">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          <input type="text" id="tx-search-input" oninput="App.filterTransactions()" placeholder="Açıklama veya not içinde ara..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+        </div>
+
+        <!-- Filtreler Grubu -->
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Tür Filtresi -->
+          <select id="tx-filter-type" onchange="App.filterTransactions()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="all">Tüm Türler</option>
+            <option value="income">Yalnızca Gelir</option>
+            <option value="expense">Yalnızca Gider</option>
+          </select>
+
+          <!-- Kategori Filtresi -->
+          <select id="tx-filter-category" onchange="App.filterTransactions()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="all">Tüm Kategoriler</option>
+            <!-- Dinamik doldurulur -->
+          </select>
+
+          <!-- Dönem Filtresi -->
+          <select id="tx-filter-period" onchange="App.filterTransactions()" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="this_month">Bu Ay</option>
+            <option value="last_month">Önceki Ay</option>
+            <option value="all">Tüm Zamanlar</option>
+          </select>
+
+          <!-- Excel CSV İndir -->
+          <button onclick="DataManager.exportCSV()" title="CSV Olarak İndir" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition">
+            <i data-lucide="download" class="w-4 h-4"></i>
+          </button>
+
+          <!-- Tüm İşlemleri Temizle -->
+          <button onclick="App.clearTransactionsConfirm()" title="Tüm İşlemleri Temizle" class="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tablo Kartı -->
+      <div class="soft-card rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs uppercase tracking-wider font-semibold">
+              <tr>
+                <th class="py-3.5 px-5">Tarih</th>
+                <th class="py-3.5 px-5">Açıklama</th>
+                <th class="py-3.5 px-5">Kategori</th>
+                <th class="py-3.5 px-5">Ödeme Şekli</th>
+                <th class="py-3.5 px-5 text-right">Tutar</th>
+                <th class="py-3.5 px-5 text-center">İşlem</th>
+              </tr>
+            </thead>
+            <tbody id="transaction-table-body" class="divide-y divide-slate-100">
+              <!-- Dinamik satırlar -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Filtre Sonuç Özeti Barı -->
+        <div class="p-4 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+          <div id="tx-count-label">0 işlem gösteriliyor</div>
+          <div class="flex items-center gap-4 font-medium">
+            <span class="text-emerald-700">Gelir: <b id="filtered-total-income">0,00 ₺</b></span>
+            <span class="text-rose-700">Gider: <b id="filtered-total-expense">0,00 ₺</b></span>
+            <span class="text-slate-800">Fark: <b id="filtered-net-diff">0,00 ₺</b></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. BÜTÇE LİMİTLERİ (BUDGETS) -->
+    <div id="view-budgets" class="tab-view hidden space-y-6 animate-fade-in">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">Aylık Kategori Bütçe Hedefleri</h3>
+          <p class="text-xs text-slate-500">Her kategori için harcama tavanı belirleyin; aşım durumunda anında haberdar olun.</p>
+        </div>
+        <button onclick="App.openBulkBudgetModal()" class="px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold rounded-xl text-xs border border-indigo-200 transition">
+          Limitleri Toplu Düzenle
+        </button>
+      </div>
+
+      <!-- Kategori Bütçe Kartları Grid -->
+      <div id="budgets-card-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Dinamik doldurulur -->
+      </div>
+
+      <!-- Bütçe Karşılaştırma Grafiği -->
+      <div class="soft-card p-6 rounded-2xl">
+        <div class="mb-4">
+          <h3 class="font-bold text-slate-900 text-base">Planlanan Bütçe vs Gerçekleşen Harcama</h3>
+          <p class="text-xs text-slate-400">Bu ayki bütçe limitleriniz ile fiili harcamalarınızın kıyaslaması</p>
+        </div>
+        <div class="relative h-80">
+          <canvas id="budgetComparisonCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. BİRİKİM HEDEFLERİ (SAVINGS) -->
+    <div id="view-savings" class="tab-view hidden space-y-6 animate-fade-in">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">Birikim ve Gelecek Hedefleri</h3>
+          <p class="text-xs text-slate-500">Hayalleriniz için fon ayırın ve ilerlemenizi adım adım takip edin.</p>
+        </div>
+        <button onclick="App.openAddSavingsModal()" class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-sm transition">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Yeni Hedef Ekle</span>
+        </button>
+      </div>
+
+      <!-- Hedefler Grid -->
+      <div id="savings-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Dinamik doldurulur -->
+      </div>
+    </div>
+
+    <!-- 5. RAPORLAR & ANALİZ (REPORTS) -->
+    <div id="view-reports" class="tab-view hidden space-y-6 animate-fade-in">
+      <div>
+        <h3 class="text-lg font-bold text-slate-900">Finansal Raporlar ve Öngörüler</h3>
+        <p class="text-xs text-slate-500">Harcama kalıplarınız, tasarruf oranlarınız ve detaylı istatistikler.</p>
+      </div>
+
+      <!-- İstatistiksel İpuçları Kartları -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="soft-card p-5 rounded-2xl">
+          <span class="text-xs font-bold text-slate-400 uppercase">Günlük Ortalama Harcama</span>
+          <h4 id="report-daily-avg" class="text-2xl font-black text-slate-900 mt-2">0,00 ₺</h4>
+          <p class="text-xs text-slate-400 mt-1">Bu ay içinde gün başına düşen gider</p>
+        </div>
+        <div class="soft-card p-5 rounded-2xl">
+          <span class="text-xs font-bold text-slate-400 uppercase">En Yüksek Tekil Harcama</span>
+          <h4 id="report-max-expense" class="text-2xl font-black text-rose-600 mt-2">0,00 ₺</h4>
+          <p id="report-max-expense-title" class="text-xs text-slate-400 mt-1 truncate">-</p>
+        </div>
+        <div class="soft-card p-5 rounded-2xl">
+          <span class="text-xs font-bold text-slate-400 uppercase">En Çok Harcanan Kategori</span>
+          <h4 id="report-top-category" class="text-2xl font-black text-indigo-600 mt-2">-</h4>
+          <p id="report-top-category-amount" class="text-xs text-slate-400 mt-1">0,00 ₺</p>
+        </div>
+      </div>
+
+      <!-- Kategori Sıralaması Listesi -->
+      <div class="soft-card p-6 rounded-2xl">
+        <h4 class="font-bold text-slate-900 text-base mb-4">Kategoriye Göre Harcama Dağılım Sıralaması</h4>
+        <div id="report-category-ranking" class="space-y-3">
+          <!-- Dinamik doldurulur -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. YEDEK & AYARLAR (SETTINGS) -->
+    <div id="view-settings" class="tab-view hidden space-y-6 animate-fade-in max-w-3xl">
+      <div>
+        <h3 class="text-lg font-bold text-slate-900">Veri Yönetimi & Yedekleme</h3>
+        <p class="text-xs text-slate-500">Finansal verilerinizi dışa aktarın, yedekten geri yükleyin veya sıfırlayın.</p>
+      </div>
+
+      <!-- Dışa Aktarma Seçenekleri -->
+      <div class="soft-card p-6 rounded-2xl space-y-4">
+        <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+          <i data-lucide="download" class="w-4 h-4 text-indigo-600"></i> Verileri Dışa Aktar (Yedek Al)
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button onclick="DataManager.exportJSON()" class="p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-indigo-50/50 hover:border-indigo-300 transition text-left flex items-start gap-3">
+            <div class="p-2 bg-indigo-100 text-indigo-700 rounded-lg shrink-0">
+              <i data-lucide="file-code" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="font-semibold text-slate-800 text-sm">JSON Formatında Yedek</div>
+              <div class="text-xs text-slate-500 mt-0.5">Tüm işlemler, bütçe limitleri ve hedefleri eksiksiz içerir.</div>
+            </div>
+          </button>
+
+          <button onclick="DataManager.exportCSV()" class="p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-emerald-50/50 hover:border-emerald-300 transition text-left flex items-start gap-3">
+            <div class="p-2 bg-emerald-100 text-emerald-700 rounded-lg shrink-0">
+              <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="font-semibold text-slate-800 text-sm">Excel CSV Tablosu</div>
+              <div class="text-xs text-slate-500 mt-0.5">Microsoft Excel ile uyumlu UTF-8 formatlı hareket dökümü.</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- İçe Aktarma -->
+      <div class="soft-card p-6 rounded-2xl space-y-4">
+        <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+          <i data-lucide="upload" class="w-4 h-4 text-indigo-600"></i> JSON Yedeğinden Geri Yükle
+        </h4>
+        <p class="text-xs text-slate-500">Daha önce indirdiğiniz `.json` uzantılı bütçe yedek dosyasını seçerek tüm verilerinizi geri getirin.</p>
+        <div class="flex items-center gap-3">
+          <input type="file" id="import-json-input" accept=".json" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+          <button onclick="App.handleImportJSON()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl shrink-0 transition">
+            Yükle & Güncelle
+          </button>
+        </div>
+      </div>
+
+      <!-- Örnek Veri & Sıfırlama -->
+      <div class="soft-card p-6 rounded-2xl space-y-4">
+        <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+          <i data-lucide="refresh-cw" class="w-4 h-4 text-indigo-600"></i> Sıfırlama ve Temizleme Seçenekleri
+        </h4>
+        <p class="text-xs text-slate-500">Kendi bütçenizi sıfırdan oluşturmak için örnek işlemleri tek tıkla silebilirsiniz.</p>
+        <div class="flex flex-wrap gap-3">
+          <button onclick="App.clearTransactionsConfirm()" class="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm">
+            <i data-lucide="trash-2" class="w-4 h-4"></i> Örnek İşlemleri Temizle (Boş Bütçeye Başla)
+          </button>
+          <button onclick="App.clearAllDataConfirm()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-semibold rounded-xl transition flex items-center gap-1.5">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Tüm Verileri ve Bütçeleri Sıfırla
+          </button>
+          <button onclick="App.resetToDemoData()" class="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold rounded-xl transition flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-4 h-4"></i> Örnek Demo Verileri Yeniden Yükle
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODALLAR -->
+
+  <!-- 1. İŞLEM EKLE / DÜZENLE MODALI -->
+  <div id="modal-transaction" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="modal-backdrop fixed inset-0" onclick="App.closeTransactionModal()"></div>
+    <div class="relative bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl z-10 animate-fade-in">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <h3 id="modal-tx-title" class="text-lg font-bold text-slate-900">Yeni İşlem Kaydet</h3>
+        <button onclick="App.closeTransactionModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="tx-form" onsubmit="App.saveTransaction(event)" class="mt-4 space-y-4">
+        <input type="hidden" id="tx-edit-id" value="">
+
+        <!-- Tür Seçimi (Gelir vs Gider) -->
+        <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+          <button type="button" id="tx-btn-type-expense" onclick="App.setFormTxType('expense')" class="py-2 rounded-lg text-xs font-bold transition bg-white text-rose-600 shadow-sm">
+            - Gider
+          </button>
+          <button type="button" id="tx-btn-type-income" onclick="App.setFormTxType('income')" class="py-2 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
+            + Gelir
+          </button>
+        </div>
+        <input type="hidden" id="tx-type-input" value="expense">
+
+        <!-- Tutar -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Tutar (₺)*</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">₺</span>
+            <input type="number" step="0.01" min="0.01" id="tx-amount-input" required placeholder="0,00" class="w-full pl-8 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-base font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+          </div>
+        </div>
+
+        <!-- Başlık / Açıklama -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">İşlem Açıklaması*</label>
+          <input type="text" id="tx-title-input" required placeholder="Örn: Market Alışverişi, Kira, Freelance Gelir" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+        </div>
+
+        <!-- Kategori & Tarih İkili -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori*</label>
+            <select id="tx-category-select" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <!-- Dinamik doldurulur -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Tarih*</label>
+            <input type="date" id="tx-date-input" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <!-- Ödeme Yöntemi -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Ödeme Yöntemi</label>
+          <select id="tx-payment-method" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="Kredi Kartı">Kredi Kartı</option>
+            <option value="Banka Transferi / EFT">Banka Transferi / EFT</option>
+            <option value="Nakit">Nakit</option>
+            <option value="Otomatik Ödeme">Otomatik Ödeme</option>
+            <option value="Diğer">Diğer</option>
+          </select>
+        </div>
+
+        <!-- Not (Opsiyonel) -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Ek Not (Opsiyonel)</label>
+          <input type="text" id="tx-note-input" placeholder="Fiş no, taksit detayı vb." class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="pt-3 flex items-center justify-end gap-2">
+          <button type="button" onclick="App.closeTransactionModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl text-xs font-semibold transition">
+            İptal
+          </button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-100 transition">
+            Kaydet
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. BİRİKİM HEDEFİ EKLE MODALI -->
+  <div id="modal-savings" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="modal-backdrop fixed inset-0" onclick="App.closeSavingsModal()"></div>
+    <div class="relative bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl z-10 animate-fade-in">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+        <h3 class="text-lg font-bold text-slate-900">Yeni Birikim Hedefi</h3>
+        <button onclick="App.closeSavingsModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="savings-form" onsubmit="App.saveSavingsGoal(event)" class="mt-4 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Hedef Adı*</label>
+          <input type="text" id="savings-title-input" required placeholder="Örn: Ev Peşinatı, Yeni Telefon, Tatil Fonu" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Hedef Tutar (₺)*</label>
+            <input type="number" step="100" min="100" id="savings-target-input" required placeholder="50.000" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Mevcut Birikim (₺)</label>
+            <input type="number" step="100" min="0" id="savings-current-input" value="0" placeholder="0" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Hedef Tarihi*</label>
+          <input type="date" id="savings-deadline-input" required class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="pt-3 flex items-center justify-end gap-2">
+          <button type="button" onclick="App.closeSavingsModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl text-xs font-semibold transition">
+            İptal
+          </button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-100 transition">
+            Hedefi Oluştur
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. HEDEFE PARA EKLE / ÇIKAR MODALI -->
+  <div id="modal-savings-deposit" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="modal-backdrop fixed inset-0" onclick="App.closeSavingsDepositModal()"></div>
+    <div class="relative bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl z-10 animate-fade-in">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 id="deposit-modal-goal-title" class="text-base font-bold text-slate-900">Hedefe Para Ekle</h3>
+        <button onclick="App.closeSavingsDepositModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form onsubmit="App.saveSavingsDeposit(event)" class="mt-4 space-y-4">
+        <input type="hidden" id="deposit-goal-id" value="">
+
+        <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+          <button type="button" id="btn-deposit-add" onclick="App.setDepositAction('add')" class="py-1.5 rounded-lg text-xs font-bold transition bg-white text-emerald-600 shadow-sm">
+            + Para Ekle
+          </button>
+          <button type="button" id="btn-deposit-sub" onclick="App.setDepositAction('sub')" class="py-1.5 rounded-lg text-xs font-bold transition text-slate-600">
+            - Para Çıkar
+          </button>
+        </div>
+        <input type="hidden" id="deposit-action-type" value="add">
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Tutar (₺)*</label>
+          <input type="number" step="50" min="1" id="deposit-amount-input" required placeholder="Örn: 2.500" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-base font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2">
+          <button type="button" onclick="App.closeSavingsDepositModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl text-xs font-semibold">
+            İptal
+          </button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md">
+            Uygula
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. TOPLU BÜTÇE LİMİTİ DÜZENLEME MODALI -->
+  <div id="modal-bulk-budget" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="modal-backdrop fixed inset-0" onclick="App.closeBulkBudgetModal()"></div>
+    <div class="relative bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl z-10 animate-fade-in max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100 shrink-0">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">Aylık Bütçe Limitlerini Güncelle</h3>
+          <p class="text-xs text-slate-400">Her gider kategorisi için aylık maksimum limitinizi belirleyin.</p>
+        </div>
+        <button onclick="App.closeBulkBudgetModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="bulk-budget-form" onsubmit="App.saveBulkBudgets(event)" class="mt-4 overflow-y-auto flex-1 pr-1 space-y-3">
+        <div id="bulk-budget-inputs" class="space-y-3">
+          <!-- Dinamik kategori limit inputları -->
+        </div>
+
+        <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
+          <button type="button" onclick="App.closeBulkBudgetModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl text-xs font-semibold">
+            Vazgeç
+          </button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md">
+            Limitleri Kaydet
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Bildirim Konteyneri -->
+  <div id="toast-container"></div>
+
+  <!-- JS Modülleri -->
+  <script src="js/data.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
